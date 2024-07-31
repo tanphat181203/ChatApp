@@ -35,7 +35,94 @@ export default function Chat() {
         </div>
       </div>
 
-      <div className="flex-1 p-5"></div>
+      <div className="flex-1 p-5 flex flex-col gap-5 overflow-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-dark-blue-rgba scrollbar-track-transparent">
+        <div className="max-w-7/10 flex gap-5">
+          <img
+            className="w-8 h-8 rounded-full object-cover"
+            src="/avatar.png"
+            alt=""
+          />
+          <div className="flex-1 flex flex-col gap-2">
+            <p className="bg-dark-blue-rgba-2 p-4 rounded-md">
+              Lorem ipsum dolor sit amet consectetur, adipisicing elit. In quis,
+              molestias id impedit at alias voluptates? Repellendus fuga, eaque
+              ut earum eligendi, ea quibusdam voluptate veritatis quae obcaecati
+              sint officia?
+            </p>
+            <span className="text-xs">1 min ago</span>
+          </div>
+        </div>
+        <div className="max-w-7/10 flex gap-5 self-end">
+          <div className="lex-1 flex flex-col gap-2">
+            <p className="bg-blue-400 p-4 rounded-md">
+              Lorem ipsum dolor sit amet consectetur, adipisicing elit. In quis,
+              molestias id impedit at alias voluptates? Repellendus fuga, eaque
+              ut earum eligendi, ea quibusdam voluptate veritatis quae obcaecati
+              sint officia?
+            </p>
+            <span className="text-xs">1 min ago</span>
+          </div>
+        </div>
+        <div className="max-w-7/10 flex gap-5">
+          <img
+            className="w-8 h-8 rounded-full object-cover"
+            src="/avatar.png"
+            alt=""
+          />
+          <div className="flex-1 flex flex-col gap-2">
+            <p className="bg-dark-blue-rgba-2 p-4 rounded-md">
+              Lorem ipsum dolor sit amet consectetur, adipisicing elit. In quis,
+              molestias id impedit at alias voluptates? Repellendus fuga, eaque
+              ut earum eligendi, ea quibusdam voluptate veritatis quae obcaecati
+              sint officia?
+            </p>
+            <span className="text-xs">1 min ago</span>
+          </div>
+        </div>
+        <div className="max-w-7/10 flex gap-5 self-end">
+          <div className="lex-1 flex flex-col gap-2">
+            <p className="bg-blue-400 p-4 rounded-md">
+              Lorem ipsum dolor sit amet consectetur, adipisicing elit. In quis,
+              molestias id impedit at alias voluptates? Repellendus fuga, eaque
+              ut earum eligendi, ea quibusdam voluptate veritatis quae obcaecati
+              sint officia?
+            </p>
+            <span className="text-xs">1 min ago</span>
+          </div>
+        </div>
+        <div className="max-w-7/10 flex gap-5">
+          <img
+            className="w-8 h-8 rounded-full object-cover"
+            src="/avatar.png"
+            alt=""
+          />
+          <div className="flex-1 flex flex-col gap-2">
+            <p className="bg-dark-blue-rgba-2 p-4 rounded-md">
+              Lorem ipsum dolor sit amet consectetur, adipisicing elit. In quis,
+              molestias id impedit at alias voluptates? Repellendus fuga, eaque
+              ut earum eligendi, ea quibusdam voluptate veritatis quae obcaecati
+              sint officia?
+            </p>
+            <span className="text-xs">1 min ago</span>
+          </div>
+        </div>
+        <div className="max-w-7/10 flex gap-5 self-end">
+          <div className="lex-1 flex flex-col gap-2">
+            <img
+              className="w-full h-[300px] rounded-lg object-cover"
+              src="https://pbs.twimg.com/media/GTxuivxWkAAooPa?format=jpg&name=4096x4096"
+              alt=""
+            />
+            <p className="bg-blue-400 p-4 rounded-md">
+              Lorem ipsum dolor sit amet consectetur, adipisicing elit. In quis,
+              molestias id impedit at alias voluptates? Repellendus fuga, eaque
+              ut earum eligendi, ea quibusdam voluptate veritatis quae obcaecati
+              sint officia?
+            </p>
+            <span className="text-xs">1 min ago</span>
+          </div>
+        </div>
+      </div>
 
       <div className="p-5 flex gap-5 mt-auto items-center justify-between border-t border-[#dddddd35]">
         <div className="flex gap-5">
