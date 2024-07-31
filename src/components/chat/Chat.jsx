@@ -1,9 +1,14 @@
 import EmojiPicker from "emoji-picker-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Chat() {
   const [openEmoji, setOpenEmoji] = useState(false);
   const [text, setText] = useState("");
+  const endRef = useRef(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
 
   function handleEmoji(e) {
     setText((prev) => prev + e.emoji);
@@ -114,14 +119,15 @@ export default function Chat() {
               alt=""
             />
             <p className="bg-blue-400 p-4 rounded-md">
-              Lorem ipsum dolor sit amet consectetur, adipisicing elit. In quis,
-              molestias id impedit at alias voluptates? Repellendus fuga, eaque
-              ut earum eligendi, ea quibusdam voluptate veritatis quae obcaecati
-              sint officia?
+              Lorem ipsum dolor sit amet consectetur adipisicing elit. Rem
+              facilis beatae voluptatum recusandae eveniet cum ipsa iusto
+              corporis! Cupiditate exercitationem cumque voluptatem aliquid,
+              suscipit modi deserunt blanditiis laudantium nihil doloremque!
             </p>
             <span className="text-xs">1 min ago</span>
           </div>
         </div>
+        <div ref={endRef}></div>
       </div>
 
       <div className="p-5 flex gap-5 mt-auto items-center justify-between border-t border-[#dddddd35]">
