@@ -21,7 +21,7 @@ export default function ChatList() {
           onClick={() => setAddButtonMode((prev) => !prev)}
         />
       </div>
-      <div className="flex items-center gap-5 p-5 cursor-pointer border-b border-gray-500">
+      <div className="flex items-center gap-5 p-5 cursor-pointer border-b border-[#dddddd35]">
         <img
           className="w-[50px] h-[50px] rounded-full object-cover"
           src="/avatar.png"
