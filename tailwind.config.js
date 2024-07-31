@@ -7,6 +7,7 @@ export default {
         "dark-blue-rgba": "rgba(17, 25, 40, 0.75)",
         "dark-blue-rgba-1": "rgba(17, 25, 40, 0.50)",
         "dark-blue-rgba-2": "rgba(17, 25, 40, 0.30)",
+        "dark-blue-rgba-3": "rgba(17, 25, 40, 0.9)",
       },
       flex: {
         2: "2 2 0%",

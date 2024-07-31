@@ -5,7 +5,7 @@ import Login from "./components/login/Login";
 import Nontification from "./components/nontification/Nontification";
 
 const App = () => {
-  const user = false;
+  const user = true;
 
   return (
     <div className="w-[80vw] h-[90vh] bg-dark-blue-rgba backdrop-blur-lg border border-white/[.125] rounded-xl flex">
