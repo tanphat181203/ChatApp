@@ -1,8 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AddUser from "./AddUser";
+import { useUserStore } from "../../lib/userStore";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { db } from "../../lib/firebase";
 
 export default function ChatList() {
   const [addButtonMode, setAddButtonMode] = useState(false);
+  const [chats, setChats] = useState([]);
+
+  const { currentUser } = useUserStore();
+
+  useEffect(() => {
+    const unSub = onSnapshot(
+      doc(db, "userchats", currentUser.id),
+      async (res) => {
+        const items = res.data().chats;
+
+        const promises = items.map(async (item) => {
+          const userDocRef = doc(db, "users", item.receiverId);
+          const userDocSnap = await getDoc(userDocRef);
+          const user = userDocSnap.data();
+          return { ...item, user };
+        });
+
+        const chatData = await Promise.all(promises);
+        setChats(chatData.sort((a, b) => b.updateAt - a.updateAt));
+      }
+    );
+    return () => unSub();
+  }, [currentUser.id]);
 
   return (
     <div className="flex-1 overflow-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-dark-blue-rgba scrollbar-track-transparent">
@@ -22,17 +48,22 @@ export default function ChatList() {
           onClick={() => setAddButtonMode((prev) => !prev)}
         />
       </div>
-      <div className="flex items-center gap-5 p-5 cursor-pointer border-b border-[#dddddd35]">
-        <img
-          className="w-[50px] h-[50px] rounded-full object-cover"
-          src="/avatar.png"
-          alt=""
-        />
-        <div className="flex flex-col gap-[10px]">
-          <span className="font-medium">Lorem Ipsum</span>
-          <p className="text-sm font-light">Hello</p>
+      {chats.map((chat) => (
+        <div
+          className="flex items-center gap-5 p-5 cursor-pointer border-b border-[#dddddd35]"
+          key={chat.chatId}
+        >
+          <img
+            className="w-[50px] h-[50px] rounded-full object-cover"
+            src={chat.user.avatar ||"/avatar.png"}
+            alt=""
+          />
+          <div className="flex flex-col gap-[10px]">
+            <span className="font-medium">{chat.user.username}</span>
+            <p className="text-sm font-light">{chat.lastMessage}</p>
+          </div>
         </div>
-      </div>
+      ))}
       {addButtonMode && <AddUser />}
     </div>
   );
