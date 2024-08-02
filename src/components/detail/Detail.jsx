@@ -1,15 +1,42 @@
-import { auth } from "../../lib/firebase";
+import { arrayRemove, arrayUnion, doc, updateDoc } from "firebase/firestore";
+import { useChatStore } from "../../lib/chatStore";
+import { auth, db } from "../../lib/firebase";
+import { useUserStore } from "../../lib/userStore";
 
 export default function Detail() {
+  const {
+    chatId,
+    user,
+    isCurrentUserBlocked,
+    isReceiverBlocked,
+    changeChat,
+    changeBlock,
+  } = useChatStore();
+  const { currentUser } = useUserStore();
+
+  async function handleBlock() {
+    if (!user) return;
+
+    const userDocRef = doc(db, "users", currentUser.id);
+    try {
+      await updateDoc(userDocRef, {
+        blocked: isReceiverBlocked ? arrayRemove(user.id) : arrayUnion(user.id),
+      });
+      changeBlock();
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   return (
     <div className="flex-1">
       <div className="px-5 py-7 flex flex-col items-center gap-3 border-b border-[#dddddd35]">
         <img
           className="w-24 h-24 rounded-full object-cover"
-          src="/avatar.png"
+          src={user?.avatar || "/avatar.png"}
           alt=""
         />
-        <h2>Felix Kyun</h2>
+        <h2>{user?.username}</h2>
         <p>Lorem ipsum dolor sit amet.</p>
       </div>
       <div className="p-5 flex flex-col gap-6">
@@ -123,8 +150,15 @@ export default function Detail() {
             />
           </div>
         </div>
-        <button className="px-5 py-2 bg-red-500/[.80] hover:bg-red-700/[.90] text-white border-none rounded-md cursor-pointer">
-          Block User
+        <button
+          className="px-5 py-2 bg-red-500/[.80] hover:bg-red-700/[.90] text-white border-none rounded-md cursor-pointer"
+          onClick={handleBlock}
+        >
+          {isCurrentUserBlocked
+            ? "You are Blocked!"
+            : isReceiverBlocked
+            ? "User Blocked"
+            : "Block User"}
         </button>
         <button
           className="px-5 py-2 bg-blue-500 hover:bg-blue-500/[.75] rounded-md cursor-pointer"
