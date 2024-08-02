@@ -11,12 +11,14 @@ import { db } from "../../lib/firebase";
 import { useChatStore } from "../../lib/chatStore";
 import { useUserStore } from "../../lib/userStore";
 import upload from "../../lib/upload";
+import TakePhoto from "./TakePhoto";
 
 export default function Chat() {
   const [openEmoji, setOpenEmoji] = useState(false);
   const [text, setText] = useState("");
   const [chat, setChat] = useState();
   const [img, setImg] = useState({ file: null, url: "" });
+  const [takePhoto, setTakePhoto] = useState(false);
 
   const { chatId, user, isCurrentUserBlocked, isReceiverBlocked } =
     useChatStore();
@@ -26,7 +28,7 @@ export default function Chat() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chat]);
+  }, [chat, img]);
 
   useEffect(() => {
     const unSub = onSnapshot(doc(db, "chats", chatId), (res) =>
@@ -40,30 +42,64 @@ export default function Chat() {
     setOpenEmoji(false);
   }
 
-  function handleImg(e) {
+  async function handleImg(e) {
     if (e.target.files[0]) {
-      setImg({
-        file: e.target.files[0],
-        url: URL.createObjectURL(e.target.files[0]),
-      });
+      const file = e.target.files[0];
+      const url = URL.createObjectURL(file);
+      setImg({ file, url });
+
+      try {
+        const imgUrl = await upload(file);
+
+        const message = {
+          senderId: currentUser.id,
+          text: "",
+          createAt: new Date(),
+          img: imgUrl,
+        };
+
+        await updateDoc(doc(db, "chats", chatId), {
+          messages: arrayUnion(message),
+        });
+
+        const userIds = [currentUser.id, user.id];
+        userIds.forEach(async (id) => {
+          const userChatsRef = doc(db, "userchats", id);
+          const userChatsSnapshot = await getDoc(userChatsRef);
+
+          if (userChatsSnapshot.exists()) {
+            const userChatsData = userChatsSnapshot.data();
+            const chatIndex = userChatsData.chats.findIndex(
+              (c) => c.chatId === chatId
+            );
+
+            if (chatIndex !== -1) {
+              userChatsData.chats[chatIndex].lastMessage = "Image";
+              userChatsData.chats[chatIndex].isSeen = id === currentUser.id;
+              userChatsData.chats[chatIndex].updateAt = Date.now();
+
+              await updateDoc(userChatsRef, {
+                chats: userChatsData.chats,
+              });
+            }
+          }
+        });
+
+        setImg({ file: null, url: "" });
+      } catch (error) {
+        console.log(error);
+      }
     }
   }
 
   async function handleSend() {
     if (text === "") return;
 
-    let imgUrl = null;
-
     try {
-      if (img.file) {
-        imgUrl = await upload(img.file);
-      }
-
       const message = {
         senderId: currentUser.id,
         text,
         createAt: new Date(),
-        ...(imgUrl && { img: imgUrl }),
       };
 
       await updateDoc(doc(db, "chats", chatId), {
@@ -93,7 +129,6 @@ export default function Chat() {
         }
       });
 
-      setImg({ file: null, url: "" });
       setText("");
     } catch (error) {
       console.log(error);
@@ -139,15 +174,17 @@ export default function Chat() {
                   alt=""
                 />
               )}
-              <p
-                className={`p-4 rounded-md ${
-                  message.senderId === currentUser?.id
-                    ? "bg-blue-400"
-                    : "bg-dark-blue-rgba-2"
-                }`}
-              >
-                {message.text}
-              </p>
+              {message.text && (
+                <p
+                  className={`p-4 rounded-md ${
+                    message.senderId === currentUser?.id
+                      ? "bg-blue-400"
+                      : "bg-dark-blue-rgba-2"
+                  }`}
+                >
+                  {message.text}
+                </p>
+              )}
               {/* <span className="text-xs">{message}</span> */}
             </div>
           </div>
@@ -156,7 +193,7 @@ export default function Chat() {
           <div className="max-w-7/10 flex gap-5 self-end">
             <div className="lex-1 flex flex-col gap-2">
               <img
-                className="w-full h-[300px] rounded-lg object-cover"
+                className="w-full h-[300px] rounded-lg object-cover filter blur-[1px] animate-pulse"
                 src={img.url}
                 alt=""
               />
@@ -177,14 +214,23 @@ export default function Chat() {
             id="file"
             onChange={handleImg}
           />
-          <img className="w-5 h-5 cursor-pointer" src="/camera.png" alt="" />
+          <img
+            className="w-5 h-5 cursor-pointer"
+            src="/camera.png"
+            alt=""
+            onClick={() => setTakePhoto((prev) => !prev)}
+          />
           <img className="w-5 h-5 cursor-pointer" src="/mic.png" alt="" />
         </div>
         <input
           className="flex-1 bg-dark-blue-rgba-1 border-none outline-none text-white rounded-lg p-3 text-base disabled:cursor-not-allowed"
           type="text"
           value={text}
-          placeholder={ (isCurrentUserBlocked || isReceiverBlocked) ? "You cannot send a message" : "Type a message..."}
+          placeholder={
+            isCurrentUserBlocked || isReceiverBlocked
+              ? "You cannot send a message"
+              : "Type a message..."
+          }
           onChange={(e) => setText(e.target.value)}
           disabled={isCurrentUserBlocked || isReceiverBlocked}
         />
@@ -207,6 +253,15 @@ export default function Chat() {
           Send
         </button>
       </div>
+      {takePhoto && (
+        <TakePhoto
+          setImg={setImg}
+          setTakePhoto={setTakePhoto}
+          currentUser={currentUser}
+          chatId={chatId}
+          user={user}
+        />
+      )}
     </div>
   );
 }
