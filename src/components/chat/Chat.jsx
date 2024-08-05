@@ -12,13 +12,24 @@ import { useChatStore } from "../../lib/chatStore";
 import { useUserStore } from "../../lib/userStore";
 import upload from "../../lib/upload";
 import TakePhoto from "./TakePhoto";
+import Loader from "./Loader";
 
 export default function Chat() {
   const [openEmoji, setOpenEmoji] = useState(false);
+
   const [text, setText] = useState("");
   const [chat, setChat] = useState();
+
   const [img, setImg] = useState({ file: null, url: "" });
   const [takePhoto, setTakePhoto] = useState(false);
+
+  const [openRecording, setOpenRecording] = useState(false);
+  const [time, setTime] = useState(0);
+  const [isRecordind, setIsRecording] = useState(false);
+
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [audioChunks, setAudioChunks] = useState([]);
+  const [audioUrl, setAudioUrl] = useState("");
 
   const { chatId, user, isCurrentUserBlocked, isReceiverBlocked } =
     useChatStore();
@@ -28,7 +39,7 @@ export default function Chat() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chat, img]);
+  }, [chat, img, openRecording]);
 
   useEffect(() => {
     const unSub = onSnapshot(doc(db, "chats", chatId), (res) =>
@@ -135,6 +146,62 @@ export default function Chat() {
     }
   }
 
+  useEffect(() => {
+    let timer;
+    if (isRecordind) {
+      timer = setInterval(() => {
+        setTime((prevTime) => prevTime + 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isRecordind]);
+
+  const formatTime = (time) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = time % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
+      2,
+      "0"
+    )}`;
+  };
+
+  async function startRecording() {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream);
+    setIsRecording(true);
+    setAudioChunks([]);
+    setAudioUrl("");
+
+    recorder.ondataavailable = (event) => {
+      setAudioChunks((prevAudioChunks) => [...prevAudioChunks, event.data]);
+    };
+
+    recorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+      const url = URL.createObjectURL(audioBlob);
+      setAudioUrl(url);
+      setAudioChunks([]);
+      setMediaRecorder(null);
+    };
+
+    recorder.start();
+    setMediaRecorder(recorder);
+  }
+
+  function stopRecording() {
+    if (mediaRecorder) {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach((track) => track.stop());
+      setMediaRecorder(null);
+      setIsRecording(false);
+    }
+  }
+
+  function resetRecording() {
+    setIsRecording(false);
+    setTime(0);
+  }
+
   return (
     <div className="flex-2 border-l border-r border-[#dddddd35] h-full flex flex-col">
       <div className="p-5 flex items-center justify-between border-b border-[#dddddd35]">
@@ -158,7 +225,7 @@ export default function Chat() {
         </div>
       </div>
 
-      <div className="flex-1 p-5 flex flex-col gap-5 overflow-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-dark-blue-rgba scrollbar-track-transparent">
+      <div className="flex-1 p-5 pb-0 flex flex-col gap-5 overflow-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-dark-blue-rgba scrollbar-track-transparent">
         {chat?.messages?.map((message) => (
           <div
             className={`max-w-7/10 flex gap-5 ${
@@ -200,59 +267,122 @@ export default function Chat() {
             </div>
           </div>
         )}
+
         <div ref={endRef}></div>
       </div>
 
-      <div className="p-5 flex gap-5 mt-auto items-center justify-between border-t border-[#dddddd35]">
-        <div className="flex gap-5">
-          <label htmlFor="file">
-            <img className="w-5 h-5 cursor-pointer" src="/img.png" alt="" />
-          </label>
-          <input
-            className="hidden"
-            type="file"
-            id="file"
-            onChange={handleImg}
-          />
-          <img
-            className="w-5 h-5 cursor-pointer"
-            src="/camera.png"
-            alt=""
-            onClick={() => setTakePhoto((prev) => !prev)}
-          />
-          <img className="w-5 h-5 cursor-pointer" src="/mic.png" alt="" />
-        </div>
-        <input
-          className="flex-1 bg-dark-blue-rgba-1 border-none outline-none text-white rounded-lg p-3 text-base disabled:cursor-not-allowed"
-          type="text"
-          value={text}
-          placeholder={
-            isCurrentUserBlocked || isReceiverBlocked
-              ? "You cannot send a message"
-              : "Type a message..."
-          }
-          onChange={(e) => setText(e.target.value)}
-          disabled={isCurrentUserBlocked || isReceiverBlocked}
-        />
-        <div className="relative">
-          <img
-            className="w-5 h-5 cursor-pointer"
-            src="/emoji.png"
-            alt=""
-            onClick={() => setOpenEmoji((prev) => !prev)}
-          />
-          <div className="absolute left-0 bottom-12">
-            <EmojiPicker open={openEmoji} onEmojiClick={handleEmoji} />
+      <div className="p-5 pt-1 flex gap-5 mt-auto items-center justify-between">
+        {openRecording ? (
+          <div className="flex-1 flex flex-row items-center gap-3">
+            <svg
+              className="fill-white w-5 h-5 cursor-pointer transition duration-200 ease-in-out hover:scale-105 hover:fill-red-500"
+              viewBox="0 0 448 512"
+              onClick={() => {
+                setOpenRecording((prev) => !prev);
+                stopRecording();
+                resetRecording();
+              }}
+            >
+              <path d="M135.2 17.7C140.6 6.8 151.7 0 163.8 0L284.2 0c12.1 0 23.2 6.8 28.6 17.7L320 32l96 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 96C14.3 96 0 81.7 0 64S14.3 32 32 32l96 0 7.2-14.3zM32 128l384 0 0 320c0 35.3-28.7 64-64 64L96 512c-35.3 0-64-28.7-64-64l0-320zm96 64c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16z" />
+            </svg>
+            <div className="w-full px-[2px] flex items-center justify-between bg-blue-500 rounded-full">
+              <div className="p-2 cursor-pointer">
+                <svg
+                  className="fill-white w-6 h-6"
+                  viewBox="0 0 478.125 478.125"
+                  onClick={stopRecording}
+                >
+                  <g>
+                    <g>
+                      <g>
+                        <path d="M201.654,127.525h-31.9c-10.557,0-19.125,8.645-19.125,19.125v184.9c0,10.558,8.645,19.125,19.125,19.125h31.9     c10.557,0,19.125-8.645,19.125-19.125v-184.9C220.779,136.094,212.211,127.525,201.654,127.525z" />
+                        <path d="M308.448,127.525h-31.9c-10.558,0-19.125,8.645-19.125,19.125v184.9c0,10.558,8.645,19.125,19.125,19.125h31.9     c10.557,0,19.125-8.645,19.125-19.125v-184.9C327.573,136.094,318.929,127.525,308.448,127.525z" />
+                        <path d="M239.062,0C107.023,0,0,107.023,0,239.062s107.023,239.062,239.062,239.062s239.062-107.023,239.062-239.062     S371.102,0,239.062,0z M239.292,409.811c-94.171,0-170.519-76.424-170.519-170.519S145.197,68.773,239.292,68.773     c94.095,0,170.519,76.424,170.519,170.519S333.54,409.811,239.292,409.811z" />
+                      </g>
+                    </g>
+                  </g>
+                </svg>
+              </div>
+              <div className="flex-1 flex justify-center items-center h-6">
+                <Loader />
+              </div>
+              <div className="mr-4 text-sm text-white">{formatTime(time)}</div>
+            </div>
           </div>
-        </div>
-        <button
-          className="bg-blue-500 disabled:bg-blue-500/[.75] text-white px-5 py-2 border-none rounded-lg cursor-pointer disabled:cursor-not-allowed"
+        ) : (
+          <>
+            <div className="flex gap-5">
+              <label htmlFor="file">
+                <img
+                  className="w-5 h-5 cursor-pointer transition duration-200 ease-in-out hover:scale-105"
+                  src="/img.png"
+                  alt=""
+                />
+              </label>
+              <input
+                className="hidden"
+                type="file"
+                id="file"
+                onChange={handleImg}
+              />
+              <img
+                className="w-5 h-5 cursor-pointer transition duration-200 ease-in-out hover:scale-105"
+                src="/camera.png"
+                alt=""
+                onClick={() => setTakePhoto((prev) => !prev)}
+              />
+              <img
+                className="w-5 h-5 cursor-pointer transition duration-200 ease-in-out hover:scale-105"
+                src="/mic.png"
+                alt=""
+                onClick={() => {
+                  setOpenRecording((prev) => !prev);
+                  startRecording();
+                }}
+              />
+            </div>
+            <input
+              className="flex-1 bg-dark-blue-rgba-1 border-none outline-none text-white rounded-full p-2 pl-[18px] text-base disabled:cursor-not-allowed"
+              type="text"
+              value={text}
+              placeholder={
+                isCurrentUserBlocked || isReceiverBlocked
+                  ? "You cannot send a message"
+                  : "Type a message..."
+              }
+              onChange={(e) => setText(e.target.value)}
+              disabled={isCurrentUserBlocked || isReceiverBlocked}
+            />
+            <div className="relative">
+              <img
+                className="w-5 h-5 cursor-pointer transition duration-200 ease-in-out hover:scale-105"
+                src="/emoji.png"
+                alt=""
+                onClick={() => setOpenEmoji((prev) => !prev)}
+              />
+              <div className="absolute left-0 bottom-12">
+                <EmojiPicker open={openEmoji} onEmojiClick={handleEmoji} />
+              </div>
+            </div>
+          </>
+        )}
+        <svg
+          className="w-6 h-6 fill-blue-500 cursor-pointer transition duration-200 ease-in-out hover:fill-blue-400 hover:scale-105 disabled:cursor-not-allowed"
+          viewBox="0 0 64 64"
           onClick={handleSend}
           disabled={isCurrentUserBlocked || isReceiverBlocked}
         >
-          Send
-        </button>
+          <defs>
+            <clipPath id="a">
+              <rect width="64" height="64" />
+            </clipPath>
+          </defs>
+          <g clip-path="url(#a)">
+            <path d=" M 8.216 36.338 L 26.885 32.604 C 28.552 32.271 28.552 31.729 26.885 31.396 L 8.216 27.662 C 7.104 27.44 6.021 26.356 5.799 25.245 L 2.065 6.576 C 1.731 4.908 2.714 4.133 4.259 4.846 L 61.228 31.139 C 62.257 31.614 62.257 32.386 61.228 32.861 L 4.259 59.154 C 2.714 59.867 1.731 59.092 2.065 57.424 L 5.799 38.755 C 6.021 37.644 7.104 36.56 8.216 36.338 Z " />
+          </g>
+        </svg>
       </div>
+
       {takePhoto && (
         <TakePhoto
           setImg={setImg}
